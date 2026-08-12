@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Page consultée en scannant le QR de l'étiquette avec un téléphone.
+
+        Document HTML autonome, style en ligne : aucune dépendance à un bundle d'assets,
+        donc rien à casser lors d'une mise à jour d'Odoo, et un affichage instantané même
+        sur une connexion d'entrepôt médiocre.
+    -->
+    <template id="wms_pallet_page" name="Palette — contenu en direct">
+&lt;!DOCTYPE html&gt;
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>Palette <t t-out="code"/></title>
+        <style>
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                   background: #f4f5f7; color: #1f2933; -webkit-text-size-adjust: 100%; }
+            .wrap { max-width: 760px; margin: 0 auto; padding: 12px; }
+            .hdr { background: #1f2933; color: #fff; border-radius: 10px; padding: 16px; }
+            .hdr .lbl { font-size: 11px; letter-spacing: 1.5px; opacity: .7; text-transform: uppercase; }
+            .hdr .sscc { font-size: 22px; font-weight: 700; letter-spacing: 1px; word-break: break-all; margin-top: 2px; }
+            .hdr .meta { font-size: 13px; opacity: .8; margin-top: 6px; }
+            .card { background: #fff; border-radius: 10px; padding: 14px; margin-top: 12px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+            .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+                       color: #616e7c; margin: 0 0 10px; }
+            .kpis { display: flex; gap: 10px; }
+            .kpi { flex: 1; text-align: center; padding: 10px 4px; border-radius: 8px; background: #f4f5f7; }
+            .kpi .v { font-size: 22px; font-weight: 700; line-height: 1.1; }
+            .kpi .k { font-size: 11px; color: #616e7c; margin-top: 3px; }
+            .kpi.live .v { color: #0b7285; }
+            .warn { background: #fff4e6; border-left: 4px solid #f76707; padding: 10px 12px;
+                    border-radius: 6px; margin-top: 10px; font-size: 13px; }
+            table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            th { text-align: left; font-size: 11px; text-transform: uppercase; color: #616e7c;
+                 border-bottom: 1px solid #e4e7eb; padding: 6px 4px; font-weight: 600; }
+            td { padding: 8px 4px; border-bottom: 1px solid #f0f2f4; vertical-align: top; }
+            .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+            .sub { font-size: 11px; color: #7b8794; }
+            .ev { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f2f4; }
+            .ev:last-child { border-bottom: 0; }
+            .dot { flex: 0 0 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 700;
+                   font-size: 14px; text-align: center; line-height: 26px; }
+            .in  { background: #2b8a3e; }
+            .out { background: #c92a2a; }
+            .mv  { background: #868e96; }
+            .ev .body { flex: 1; min-width: 0; }
+            .ev .t { font-weight: 600; font-size: 13px; }
+            .empty { text-align: center; padding: 26px 10px; color: #7b8794; font-size: 14px; }
+            .foot { text-align: center; font-size: 11px; color: #9aa5b1; padding: 14px 0 22px; }
+            @media (prefers-color-scheme: dark) {
+                body { background: #14161a; color: #e6e8eb; }
+                .card { background: #1e2126; box-shadow: none; }
+                .kpi { background: #262a30; }
+                .card h2, .sub, th { color: #9aa5b1; }
+                td { border-bottom-color: #2a2e35; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+
+            <t t-if="not payload.get('found')">
+                <div class="hdr">
+                    <div class="lbl">Code scanné</div>
+                    <div class="sscc"><t t-out="code"/></div>
+                </div>
+                <div class="card">
+                    <div class="empty">
+                        Aucune palette ne porte ce code.<br/>
+                        <span class="sub">Vérifiez le scan, ou l'étiquette appartient à une autre base.</span>
+                    </div>
+                </div>
+            </t>
+
+            <t t-else="">
+                <t t-set="pkg" t-value="payload['package']"/>
+                <t t-set="qty" t-value="payload['quantities']"/>
+
+                <div class="hdr">
+                    <div class="lbl"><t t-if="pkg['is_sscc']">SSCC</t><t t-else="">Référence palette</t></div>
+                    <div class="sscc"><t t-out="pkg['name']"/></div>
+                    <div class="meta">
+                        <t t-if="pkg['location']">📍 <t t-out="pkg['location']"/></t>
+                        <t t-if="pkg['package_type']"> · <t t-out="pkg['package_type']"/></t>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Quantités</h2>
+                    <div class="kpis">
+                        <div class="kpi">
+                            <div class="v"><t t-out="'%g' % (qty['packed'] or 0)"/></div>
+                            <div class="k">à l'emballage</div>
+                        </div>
+                        <div class="kpi live">
+                            <div class="v"><t t-out="'%g' % (qty['current'] or 0)"/></div>
+                            <div class="k">maintenant</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="v"><t t-out="'%g' % (qty['available'] or 0)"/></div>
+                            <div class="k">disponible</div>
+                        </div>
+                    </div>
+
+                    <!-- Rendre l'écart explicite : c'est tout l'intérêt du scan. -->
+                    <div class="warn" t-if="qty['delta'] and qty['packed']">
+                        L'étiquette annonce <strong><t t-out="'%g' % qty['packed']"/></strong>,
+                        il en reste <strong><t t-out="'%g' % qty['current']"/></strong>.
+                        <t t-out="'%g' % abs(qty['delta'])"/> unité(s)
+                        <t t-if="qty['delta'] &lt; 0">prélevée(s)</t><t t-else="">ajoutée(s)</t>
+                        depuis l'impression.
+                    </div>
+                    <div class="warn" t-if="pkg['is_empty']">
+                        Cette palette est <strong>vide</strong>. Son historique reste consultable ci-dessous.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Contenu réel</h2>
+                    <t t-if="payload['content']">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Produit</th>
+                                    <th class="num">Qté</th>
+                                    <th class="num">Dispo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="payload['content']" t-as="item">
+                                    <td>
+                                        <div><t t-out="item['product_name']"/></div>
+                                        <div class="sub">
+                                            <t t-if="item['sku']">SKU <t t-out="item['sku']"/></t>
+                                            <t t-if="item['lot_name']"> · Lot <t t-out="item['lot_name']"/></t>
+                                            <t t-if="item['expiry']"> · DLC <t t-out="item['expiry'].strftime('%d/%m/%Y')"/></t>
+                                        </div>
+                                    </td>
+                                    <td class="num"><t t-out="'%g' % item['quantity']"/><div class="sub"><t t-out="item['uom']"/></div></td>
+                                    <td class="num"><t t-out="'%g' % item['available']"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+                    <div t-else="" class="empty">Palette vide</div>
+                </div>
+
+                <div class="card">
+                    <h2>Historique des mouvements</h2>
+                    <t t-if="payload['history']">
+                        <div t-foreach="payload['history']" t-as="ev" class="ev">
+                            <div t-attf-class="dot #{ev['direction'] == 'in' and 'in' or (ev['direction'] == 'out' and 'out' or 'mv')}">
+                                <t t-if="ev['direction'] == 'in'">+</t>
+                                <t t-elif="ev['direction'] == 'out'">−</t>
+                                <t t-else="">→</t>
+                            </div>
+                            <div class="body">
+                                <div class="t">
+                                    <t t-out="'%g' % ev['quantity']"/> <t t-out="ev['uom']"/> —
+                                    <t t-out="ev['product_name']"/>
+                                </div>
+                                <div class="sub">
+                                    <t t-out="ev['date'].strftime('%d/%m/%Y %H:%M')"/>
+                                    <t t-if="ev['lot_name']"> · Lot <t t-out="ev['lot_name']"/></t>
+                                    <t t-if="ev['reference']"> · <t t-out="ev['reference']"/></t>
+                                </div>
+                                <div class="sub" t-if="ev['direction'] == 'move'">
+                                    <t t-out="ev['location_from']"/> → <t t-out="ev['location_to']"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <div t-else="" class="empty">Aucun mouvement enregistré</div>
+                </div>
+
+                <div class="foot">
+                    Données lues en base à l'instant du scan.<br/>
+                    Rafraîchir la page pour la valeur la plus récente.
+                </div>
+            </t>
+
+        </div>
+    </body>
+</html>
+    </template>
+
+</odoo>

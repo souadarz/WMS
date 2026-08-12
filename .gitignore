@@ -1,0 +1,7 @@
+odoo/
+odoo-venv/
+scripts/
+config/odoo.conf
+*.pyc
+__pycache__/
+plans/

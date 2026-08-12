@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_wms" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.wms.pallet</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//block[@id='barcode_setting_container']" position="after">
+                <block title="Étiquettes palette" id="wms_pallet_setting_container">
+
+                    <setting id="wms_gs1_prefix_setting"
+                             string="Préfixe entreprise GS1"
+                             help="Nécessaire pour générer des SSCC. Attribué par GS1, il rend vos numéros de palette uniques au niveau mondial.">
+                        <div class="content-group">
+                            <div class="row mt16">
+                                <label for="gs1_company_prefix" class="col-lg-4 o_light_label"/>
+                                <field name="gs1_company_prefix" placeholder="0123456"/>
+                            </div>
+                            <div class="row">
+                                <label for="sscc_extension_digit" class="col-lg-4 o_light_label"/>
+                                <field name="sscc_extension_digit"/>
+                            </div>
+                            <div class="text-muted mt8">
+                                Un SSCC compte toujours 18 chiffres :
+                                <strong>1</strong> chiffre d'extension,
+                                le préfixe GS1, un compteur, puis <strong>1</strong> clé de contrôle.
+                                Plus le préfixe est long, moins il reste de place pour le compteur.
+                            </div>
+                        </div>
+                    </setting>
+
+                </block>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

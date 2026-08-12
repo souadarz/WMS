@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!--
+            Série des SSCC.
+
+            Sans préfixe ni remplissage : le module recalcule le remplissage lui-même,
+            car la longueur disponible dépend de la taille du préfixe GS1 de la société
+            (le SSCC doit faire exactement 18 chiffres, clé comprise).
+
+            `implementation="no_gap"` : un SSCC doit être unique et traçable. Les trous
+            de numérotation compliquent les audits logistiques.
+        -->
+        <record id="seq_wms_pallet_sscc" model="ir.sequence">
+            <field name="name">SSCC palette</field>
+            <field name="code">wms.pallet.sscc</field>
+            <field name="prefix"></field>
+            <field name="padding">1</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="implementation">no_gap</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

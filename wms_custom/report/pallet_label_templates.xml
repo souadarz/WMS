@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Étiquette palette, structurée selon la logique GS1 en trois zones :
+
+          1. zone texte   - lisible par l'humain
+          2. zone symboles - DataMatrix GS1 (données immuables) + QR (adresse de consultation)
+          3. zone SSCC    - le Code128 du SSCC, la plus grande, en bas
+
+        Ce qui N'EST PAS imprimé : la quantité courante et l'historique. Ils changent à
+        chaque prélèvement. La quantité qui figure ici est explicitement libellée
+        « à l'emballage » pour qu'aucun cariste ne la confonde avec le stock réel.
+    -->
+    <template id="report_pallet_label">
+        <t t-call="web.basic_layout">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="quants" t-value="o.quant_ids"/>
+                <t t-set="product" t-value="quants.product_id if o.wms_is_homogeneous else False"/>
+                <t t-set="lot" t-value="quants.lot_id if o.wms_is_homogeneous else False"/>
+                <t t-set="gs1_payload" t-value="o._wms_gs1_label_payload()"/>
+
+                <div class="page" style="font-family: Arial, sans-serif; padding: 6mm; width: 148mm; height: 210mm; box-sizing: border-box;">
+
+                    <!-- ============ ZONE 1 : texte lisible ============ -->
+                    <div style="border: 2px solid #000; padding: 3mm; margin-bottom: 3mm;">
+                        <div style="font-size: 8pt; text-transform: uppercase; letter-spacing: 1px; color: #555;">
+                            Expéditeur
+                        </div>
+                        <div style="font-size: 12pt; font-weight: bold;">
+                            <span t-field="o.company_id.name"/>
+                        </div>
+                    </div>
+
+                    <div style="border: 2px solid #000; padding: 3mm; margin-bottom: 3mm; min-height: 34mm;">
+                        <t t-if="product">
+                            <div style="font-size: 8pt; color: #555;">CONTENU</div>
+                            <div style="font-size: 14pt; font-weight: bold; line-height: 1.2;">
+                                <span t-field="product.display_name"/>
+                            </div>
+                            <table style="width: 100%; font-size: 10pt; margin-top: 2mm;">
+                                <tr t-if="product.default_code">
+                                    <td style="width: 32%; color: #555;">SKU</td>
+                                    <td style="font-weight: bold;"><span t-field="product.default_code"/></td>
+                                </tr>
+                                <tr t-if="lot">
+                                    <td style="color: #555;">Lot / N° série</td>
+                                    <td style="font-weight: bold;"><span t-field="lot.name"/></td>
+                                </tr>
+                                <t t-set="expiry" t-value="o._wms_lot_expiry(lot)"/>
+                                <tr t-if="expiry">
+                                    <td style="color: #555;">DLC</td>
+                                    <td style="font-weight: bold;"><span t-out="expiry.strftime('%d/%m/%Y')"/></td>
+                                </tr>
+                            </table>
+                        </t>
+                        <t t-else="">
+                            <div style="font-size: 8pt; color: #555;">CONTENU</div>
+                            <div style="font-size: 14pt; font-weight: bold;">CHARGE MIXTE</div>
+                            <div style="font-size: 9pt; color: #555; margin-top: 1mm;">
+                                <span t-out="o.wms_line_count"/> référence(s) —
+                                le détail se lit en scannant l'étiquette.
+                            </div>
+                        </t>
+
+                        <!--
+                            Volontairement libellé « à l'emballage » : cette valeur est figée
+                            à l'impression et ne reflète pas les prélèvements ultérieurs.
+                        -->
+                        <div style="margin-top: 3mm; padding-top: 2mm; border-top: 1px dashed #999;">
+                            <span style="font-size: 9pt; color: #555;">Quantité à l'emballage</span>
+                            <span style="font-size: 16pt; font-weight: bold; margin-left: 3mm;">
+                                <span t-out="'%g' % (o.wms_packed_quantity or 0.0)"/>
+                            </span>
+                            <span style="font-size: 8pt; color: #777; margin-left: 2mm;">
+                                le <span t-out="(o.wms_packed_date or o.pack_date) and (o.wms_packed_date or o.pack_date).strftime('%d/%m/%Y') or '-'"/>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- ============ ZONE 2 : symboles ============ -->
+                    <div style="display: flex; gap: 3mm; margin-bottom: 3mm;">
+
+                        <div style="flex: 1; border: 2px solid #000; padding: 3mm; text-align: center;">
+                            <div style="font-size: 7pt; color: #555; margin-bottom: 1mm;">DONNÉES GS1</div>
+                            <span t-if="gs1_payload" t-out="gs1_payload"
+                                  t-options="{'widget': 'barcode', 'symbology': 'ECC200DataMatrix', 'width': 300, 'height': 300, 'img_style': 'width:30mm;height:30mm;'}"/>
+                            <div t-else="" style="font-size: 8pt; color: #999; padding: 10mm 0;">
+                                Aucun SSCC attribué
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; border: 2px solid #000; padding: 3mm; text-align: center;">
+                            <div style="font-size: 7pt; color: #555; margin-bottom: 1mm;">CONTENU EN DIRECT</div>
+                            <span t-out="o._wms_label_url()"
+                                  t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:30mm;height:30mm;'}"/>
+                            <div style="font-size: 7pt; color: #777; margin-top: 1mm;">
+                                Scannez pour le stock réel
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ============ ZONE 3 : SSCC ============ -->
+                    <div style="border: 2px solid #000; padding: 3mm; text-align: center;">
+                        <div style="font-size: 8pt; color: #555; text-align: left;">SSCC</div>
+                        <span t-field="o.name"
+                              t-options="{'widget': 'barcode', 'symbology': 'Code128', 'width': 900, 'height': 180, 'quiet': 1, 'img_style': 'width:100%;height:22mm;'}"/>
+                        <div style="font-size: 13pt; font-weight: bold; letter-spacing: 2px; margin-top: 1mm;">
+                            (00)&#160;<span t-field="o.name"/>
+                        </div>
+                    </div>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+</odoo>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_quant_package_form_wms" model="ir.ui.view">
+        <field name="name">stock.quant.package.form.inherit.wms.pallet</field>
+        <field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="stock.view_quant_package_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Le formulaire natif a déjà un <header> (bouton Unpack) : on s'y insère. -->
+            <xpath expr="//header" position="inside">
+                <button name="action_wms_assign_sscc" type="object"
+                        string="Attribuer un SSCC"
+                        class="btn-primary"
+                        invisible="valid_sscc"
+                        help="Fige la quantité à l'emballage et attribue un numéro SSCC définitif. Un SSCC ne se réattribue jamais : c'est ce qui rend son historique non ambigu."/>
+                <button name="%(action_report_pallet_label)d" type="action"
+                        string="Imprimer l'étiquette"
+                        class="btn-secondary"
+                        invisible="not valid_sscc"/>
+            </xpath>
+
+            <xpath expr="//field[@name='package_type_id']" position="after">
+                <field name="valid_sscc" invisible="1"/>
+                <field name="wms_is_homogeneous" invisible="1"/>
+            </xpath>
+
+            <!-- Ancré sur le séparateur « Content » : sans ambiguïté, contrairement à //group. -->
+            <xpath expr="//separator[@string='Content']" position="before">
+                <group string="Suivi de la charge" name="wms_pallet_tracking"
+                       invisible="not wms_packed_date">
+                    <group>
+                        <field name="wms_packed_quantity"/>
+                        <field name="wms_packed_date"/>
+                    </group>
+                    <group>
+                        <field name="wms_current_quantity"/>
+                        <field name="wms_line_count"/>
+                    </group>
+                </group>
+                <div class="text-muted mb-3" invisible="not wms_packed_date">
+                    La <strong>quantité à l'emballage</strong> est ce qui figure sur
+                    l'étiquette papier : elle est figée à l'impression. La
+                    <strong>quantité actuelle</strong> vient de la base. L'écart entre les
+                    deux, ce sont les prélèvements — détaillés dans l'historique, accessible
+                    en scannant l'étiquette.
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_quant_package_tree_wms" model="ir.ui.view">
+        <field name="name">stock.quant.package.list.inherit.wms.pallet</field>
+        <field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="stock.view_quant_package_tree"/>
+        <field name="arch" type="xml">
+            <!-- La liste native affiche display_name, pas name. -->
+            <xpath expr="//field[@name='display_name']" position="after">
+                <field name="wms_packed_quantity" optional="hide"/>
+                <field name="wms_current_quantity" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
